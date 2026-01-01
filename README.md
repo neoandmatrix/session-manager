@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Session Manager
 
-Currently, two official plugins are available:
+A Chrome extension for managing browser sessions. It automatically saves your open tabs when you close the browser, allows you to restore, rename, and organize sessions, and provides features like permanent saving, auto-deletion, notes, and keyboard shortcuts.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **Automatic Session Saving**: Monitors open tabs and saves them as sessions when the browser closes or crashes.
+- **Multiple Windows Support**: Handles multiple browser windows separately (e.g., Current-1, Current-2).
+- **Session Continuity**: Restoring a session and then modifying tabs (add/remove) updates the same session instead of creating a new one.
+- **Rename Sessions**: Edit session names directly in the UI.
+- **Permanent Saving**: Mark sessions to keep them forever; unmarked sessions auto-delete after 24 hours.
+- **Notes**: Add personal notes to each session.
+- **Keyboard Shortcuts**: Use Ctrl+Shift+S (or Cmd+Shift+S on Mac) to manually save the current window's session.
+- **Split-View UI**: Left sidebar lists active windows and saved/history sessions; right panel shows session details, tabs, and notes.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Installation
 
-## Expanding the ESLint configuration
+1. Clone or download this repository.
+2. Run `npm install` to install dependencies.
+3. Run `npm run build` to build the extension.
+4. Open Chrome and go to `chrome://extensions/`.
+5. Enable "Developer mode" (top right).
+6. Click "Load unpacked" and select the `dist` folder from the project.
+7. The extension is now installed. Click the extension icon to open the popup.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Usage
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **View Sessions**: Open the extension popup to see active windows (live) and saved/history sessions.
+- **Select a Session**: Click on a session in the left sidebar to view its tabs and details in the right panel.
+- **Restore a Session**: Click "Restore Session" to open tabs in a new window. Any changes to tabs in that window will update the original session.
+- **Save Permanently**: Click "Keep Forever" to mark a session as saved (prevents auto-deletion).
+- **Add Notes**: Edit the notes textarea for any saved session.
+- **Manual Save**: Use the keyboard shortcut (Ctrl+Shift+S) to save the current window's tabs as a new session.
+- **Delete Sessions**: Click "Delete" to remove a saved session.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Development
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Tech Stack**: React, TypeScript, Vite, Chrome Extension APIs.
+- **Build**: `npm run build`
+- **Dev Mode**: `npm run dev` (for development with hot reload)
+- **Linting**: `npm run lint`
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Permissions
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The extension requires the following permissions in `manifest.json`:
+- `tabs`: To query and manage tabs.
+- `storage`: To save sessions locally.
+- `alarms`: For auto-deletion scheduling.
+- `commands`: For keyboard shortcuts.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Contributing
+
+Feel free to submit issues or pull requests for improvements.
+
+## License
+
+This project is open-source. See the license file for details.
