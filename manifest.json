@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Session Master",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "commands"
+  ],
+  "commands": {
+    "save-session": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Manually save current session"
+    }
+  }
+}
