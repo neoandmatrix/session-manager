@@ -17,9 +17,11 @@ interface Session {
 interface StorageData {
   currentSession?: Session;
   archives?: Session[];
+  restoredWindows?: Record<number, string>; // windowId -> sessionId mapping
 }
 
 // 1. SNAPSHOT STRATEGY: Monitor tabs and keep 'currentSession' updated
+// Also track tabs per window for restored session updates
 
 let debounceTimer: ReturnType<typeof setTimeout>;
 
@@ -41,8 +43,111 @@ async function updateCurrentSession() {
       note: ""
     };
     await chrome.storage.local.set({ currentSession: session });
+    
+    // Also update any restored sessions with their window's current tabs
+    await updateRestoredSessions();
   }, 500);
 }
+
+// Update restored sessions with current tabs from their windows
+async function updateRestoredSessions() {
+  const result = await chrome.storage.local.get(['restoredWindows', 'archives']);
+  const data = result as StorageData;
+  const restoredWindows = data.restoredWindows || {};
+  let archives = data.archives || [];
+  
+  // Check if any restored windows still exist
+  const windowIds = Object.keys(restoredWindows).map(Number);
+  if (windowIds.length === 0) return;
+  
+  let updated = false;
+  
+  for (const windowId of windowIds) {
+    const sessionId = restoredWindows[windowId];
+    
+    try {
+      // Get tabs from this specific window
+      const windowTabs = await chrome.tabs.query({ windowId });
+      
+      if (windowTabs.length > 0) {
+        // Update the session in archives
+        archives = archives.map(session => {
+          if (session.id === sessionId) {
+            updated = true;
+            return {
+              ...session,
+              timestamp: Date.now(),
+              tabs: windowTabs.map(t => ({
+                title: t.title || "New Tab",
+                url: t.url || "",
+                favIconUrl: t.favIconUrl
+              }))
+            };
+          }
+          return session;
+        });
+      }
+    } catch {
+      // Window no longer exists, remove from tracking
+      delete restoredWindows[windowId];
+      updated = true;
+    }
+  }
+  
+  if (updated) {
+    await chrome.storage.local.set({ archives, restoredWindows });
+  }
+}
+
+// Listen for window close to clean up restored window tracking
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  const result = await chrome.storage.local.get('restoredWindows');
+  const data = result as StorageData;
+  const restoredWindows = data.restoredWindows || {};
+  
+  if (restoredWindows[windowId]) {
+    delete restoredWindows[windowId];
+    await chrome.storage.local.set({ restoredWindows });
+  }
+});
+
+// Message handler for restore session requests from popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'RESTORE_SESSION') {
+    const { sessionId, tabs } = message;
+    
+    // Get valid URLs
+    const urls = tabs.map((t: Tab) => t.url).filter((url: string) => url && url !== '');
+    
+    if (urls.length === 0) {
+      sendResponse({ success: false, error: 'No valid URLs' });
+      return true;
+    }
+    
+    // Create a new window with the first URL, then add remaining tabs
+    chrome.windows.create({ url: urls[0] }, async (newWindow) => {
+      if (newWindow && newWindow.id) {
+        // Create remaining tabs in this window
+        for (let i = 1; i < urls.length; i++) {
+          await chrome.tabs.create({ windowId: newWindow.id, url: urls[i] });
+        }
+        
+        // Store the mapping: windowId -> sessionId
+        const result = await chrome.storage.local.get('restoredWindows');
+        const data = result as StorageData;
+        const restoredWindows = data.restoredWindows || {};
+        restoredWindows[newWindow.id] = sessionId;
+        await chrome.storage.local.set({ restoredWindows });
+        
+        sendResponse({ success: true, windowId: newWindow.id });
+      } else {
+        sendResponse({ success: false, error: 'Failed to create window' });
+      }
+    });
+    
+    return true; // Keep message channel open for async response
+  }
+});
 
 // Listen to any tab change to update our snapshot
 chrome.tabs.onUpdated.addListener(updateCurrentSession);

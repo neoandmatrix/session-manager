@@ -26,6 +26,19 @@ function App() {
       const data = result as { archives?: Session[] };
       setSessions(data.archives || []);
     });
+    
+    // Listen for storage changes to keep UI in sync with background updates
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.archives) {
+        setSessions((changes.archives.newValue as Session[]) || []);
+      }
+    };
+    
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
   }, []);
 
   const updateSessionsInStorage = (newSessions: Session[]) => {
@@ -60,8 +73,11 @@ function App() {
     updateSessionsInStorage(updated);
   };
 
-  const restoreSession = (tabs: Tab[]) => {
-    tabs.forEach(tab => chrome.tabs.create({ url: tab.url }));
+  const restoreSession = (sessionId: string, tabs: Tab[]) => {
+    // Send message to background script to restore session in a new tracked window
+    chrome.runtime.sendMessage(
+      { type: 'RESTORE_SESSION', sessionId, tabs }
+    );
   };
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
@@ -129,7 +145,7 @@ function App() {
               
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
-                  onClick={() => restoreSession(selectedSession.tabs)}
+                  onClick={() => restoreSession(selectedSession.id, selectedSession.tabs)}
                   style={{ backgroundColor: '#007bff', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
                 >
                   Restore All Tabs
